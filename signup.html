@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agentism - Sign Up</title>
+    <link rel="stylesheet" href="./Sign Up - Agent-Studio.AI_files/styles.css">
+    <script src="./Sign Up - Agent-Studio.AI_files/supabase-js@2"></script>
+    <script>
+        // Wait for Supabase to load
+        window.supabaseLoaded = new Promise((resolve) => {
+            if (window.supabase) resolve(window.supabase);
+            else window.addEventListener('load', () => resolve(window.supabase));
+        });
+    </script>
+    <script type="module" src="./Sign Up - Agent-Studio.AI_files/supabase-client.js.download"></script>
+    <script type="module" src="./Sign Up - Agent-Studio.AI_files/header-loader.js.download"></script>
+    <script type="module" src="./Sign Up - Agent-Studio.AI_files/main.js.download"></script>
+    <link rel="stylesheet" href="./Sign Up - Agent-Studio.AI_files/all.min.css">
+</head>
+<body>
+    <header class="main-header">
+        <nav class="nav-container">
+            <div class="logo">
+                <a href="https://agentism.fun/index.html" class="gradient-text">Agentism.fun</a>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="https://agentism.fun/index.html">Home</a></li>
+                <li><a href="https://agentism.fun/agents.html">AI Agents</a></li>
+                <li><a href="https://agentism.fun/users.html">For Users</a></li>
+                <li><a href="https://agentism.fun/devs.html">For Developers</a></li>
+                <li><a href="https://agentism.fun/about.html">About Us</a></li>
+                <li><a href="https://agentism.fun/contact.html">Contact</a></li>
+            </ul>
+        </nav>
+    </header>
+    <div class="auth-container">
+        <h1 class="gradient-text">Sign Up</h1>
+        <form id="signupForm" class="auth-form">
+            <div class="form-group">
+                <label for="fullName">Name</label>
+                <input type="text" id="fullName" name="fullName" required="">
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required="">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required="" minlength="6">
+            </div>
+            <button type="submit" class="auth-button">Sign Up</button>
+            <div id="errorMessage" class="error-message" style="display: none;"></div>
+        </form>
+        <div class="auth-divider">
+            <span>Or sign up with</span>
+        </div>
+
+        <div class="social-auth">
+            <button type="button" class="social-button" id="googleSignup">
+                <i class="fab fa-google"></i>
+                Google
+            </button>
+            <button type="button" class="social-button" id="githubSignup">
+                <i class="fab fa-github"></i>
+                GitHub
+            </button>
+        </div>
+
+        <p class="auth-redirect">
+            Already have an account? <a href="https://agentism.fun/login.html">Login</a>
+        </p>
+    </div>
+
+    <script type="module">
+        import { getSupabase } from './js/supabase-client.js';
+        
+        const signupForm = document.getElementById('signupForm');
+        const errorMessage = document.getElementById('errorMessage');
+
+        signupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fullName = document.getElementById('fullName').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            
+            try {
+                // Clear previous error
+                errorMessage.style.display = 'none';
+                submitButton.disabled = true;
+                submitButton.textContent = 'Signing up...';
+
+                // Basic validation
+                if (password.length < 6) {
+                    throw new Error('Password must be at least 6 characters long');
+                }
+
+                const supabase = await getSupabase();
+                
+                // Sign up the user
+                const { data, error: signUpError } = await supabase.auth.signUp({
+                    email,
+                    password,
+                    options: {
+                        data: {
+                            full_name: fullName
+                        },
+                        emailRedirectTo: window.location.origin + '/login.html'
+                    }
+                });
+
+                if (signUpError) throw signUpError;
+
+                if (data?.user) {
+                    // Show success message
+                    errorMessage.textContent = data.user.identities?.length === 0 
+                        ? 'This email is already registered. Please try logging in.'
+                        : 'Sign up successful! Please check your email for verification.';
+                    errorMessage.style.display = 'block';
+                    errorMessage.style.color = '#10B981';
+                    errorMessage.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+
+                    // Redirect after a short delay
+                    if (data.user.identities?.length > 0) {
+                        setTimeout(() => {
+                            window.location.href = './login.html';
+                        }, 2000);
+                    }
+                }
+            } catch (error) {
+                errorMessage.textContent = error.message;
+                errorMessage.style.display = 'block';
+                errorMessage.style.color = '#EF4444';
+                errorMessage.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Sign Up';
+            }
+        });
+
+        const googleSignup = document.getElementById('googleSignup');
+        const githubSignup = document.getElementById('githubSignup');
+
+        googleSignup.addEventListener('click', async () => {
+            try {
+                const { error } = await supabase.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: {
+                        redirectTo: window.location.origin + '/ai-agents.html'
+                    }
+                });
+                
+                if (error) throw error;
+            } catch (error) {
+                console.error('Google signup error:', error);
+                alert('Failed to sign up with Google. Please try again.');
+            }
+        });
+
+        githubSignup.addEventListener('click', async () => {
+            try {
+                const { error } = await supabase.auth.signInWithOAuth({
+                    provider: 'github',
+                    options: {
+                        redirectTo: window.location.origin + '/ai-agents.html'
+                    }
+                });
+                
+                if (error) throw error;
+            } catch (error) {
+                console.error('GitHub signup error:', error);
+                alert('Failed to sign up with GitHub. Please try again.');
+            }
+        });
+    </script>
+
+ </body></html>
